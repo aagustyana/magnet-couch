@@ -3,17 +3,17 @@ require 'rubygems'
 require 'ruby-debug'
 
 class MagnetCouch
-  ## data_hash contains key-value data that will store in couchdb
+  ## data contains key-value data that will store in couchdb
   ## couchdb_server : couchdb server url, default = http://localhost:5984/
   ## couchdb_db name : couchdb database name, default = couuchdb_db_name
   ## couchdb_url : couchdb complete url
   
-  attr_accessor :data_hash, :couchdb_server, :couchdb_url, :couchdb_db_name, :_id, :_rev, :errors
+  attr_accessor :data, :couchdb_server, :couchdb_url, :couchdb_db_name, :_id, :_rev, :errors
   
-  def initialize(data_hash={}, server=nil, db_name = nil)
-    @data_hash = data_hash
-    @_id = data_hash["_id"]
-    @_rev = data_hash["_rev"]
+  def initialize(data={}, server=nil, db_name = nil)
+    @data = data
+    @_id = data["_id"]
+    @_rev = data["_rev"]
     @errors = []
     
     begin
@@ -41,19 +41,19 @@ class MagnetCouch
   
   def update_attributes(params)
     
-    self.data_hash.each do |key,value|
-      self.data_hash[key] = params[key] if params.keys.include?(key)
+    self.data.each do |key,value|
+      self.data[key] = params[key] if params.keys.include?(key)
     end  
     
     clnt = HTTPClient.new
-    response = clnt.put("#{self.couchdb_url}/#{self._id}",JSON.generate(self.data_hash.reject {|key,value| key=="_id"}))
+    response = clnt.put("#{self.couchdb_url}/#{self._id}",JSON.generate(self.data.reject {|key,value| key=="_id"}))
     result_hash = JSON.parse(response.content)
     
     if result_hash["error"]
       self.errors << result_hash["reason"]
       return false
     elsif result_hash["rev"]
-      self._rev = self.data_hash["_rev"] = result_hash["rev"] 
+      self._rev = self.data["_rev"] = result_hash["rev"] 
       return true
     else
       return false
@@ -74,14 +74,14 @@ class MagnetCouch
   end  
   
   def save
-    if @data_hash["id"]
+    if @data["id"]
     else
       clnt = HTTPClient.new
-      @data_hash["root_doc_name"] = self.class.to_s
-      @data_hash["date"] = Time.now.strftime("%Y/%m/%d %H:%M:%S")
-      rs = clnt.put("#{self.couchdb_url}/#{self.uuid}",JSON.generate(@data_hash))
-      self.data_hash.merge!(JSON.parse(rs.content))
-      return self.data_hash["ok"]
+      @data["root_doc_name"] = self.class.to_s
+      @data["date"] = Time.now.strftime("%Y/%m/%d %H:%M:%S")
+      rs = clnt.put("#{self.couchdb_url}/#{self.uuid}",JSON.generate(@data))
+      self.data.merge!(JSON.parse(rs.content))
+      return self.data["ok"]
     end    
   end
   
