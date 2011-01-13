@@ -8,12 +8,12 @@ class MagnetCouch
   ## couchdb_db name : couchdb database name, default = couuchdb_db_name
   ## couchdb_url : couchdb complete url
   
-  attr_accessor :data_hash, :couchdb_server, :couchdb_url, :couchdb_db_name, :_id, :_rev_id, :errors
+  attr_accessor :data_hash, :couchdb_server, :couchdb_url, :couchdb_db_name, :_id, :_rev, :errors
   
   def initialize(data_hash={}, server=nil, db_name = nil)
     @data_hash = data_hash
     @_id = data_hash["_id"]
-    @_rev_id = data_hash["_rev_id"]
+    @_rev = data_hash["_rev"]
     @errors = []
     
     begin
@@ -50,14 +50,27 @@ class MagnetCouch
     result_hash = JSON.parse(response.content)
     
     if result_hash["error"]
-      self.errors << result_hash["error"]
+      self.errors << result_hash["reason"]
       return false
     elsif result_hash["rev"]
-      self._rev_id = self.data_hash["_rev_id"] = result_hash["rev"] 
+      self._rev = self.data_hash["_rev"] = result_hash["rev"] 
       return true
     else
       return false
     end    
+  end  
+  
+  def destroy
+    clnt = HTTPClient.new
+    response = clnt.delete("#{self.couchdb_url}/#{self._id}?rev=#{self._rev}")
+    result_hash = JSON.parse(response.content)
+  
+    if result_hash["error"]
+      self.errors << result_hash["reason"]
+      return false
+    else
+      return true
+    end      
   end  
   
   def save
