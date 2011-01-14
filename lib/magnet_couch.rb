@@ -46,6 +46,9 @@ class MagnetCouch
     end  
     
     clnt = HTTPClient.new
+    
+    self.data["updated_at"] = Time.now.strftime("%Y/%m/%d %H:%M:%S")
+    
     response = clnt.put("#{self.couchdb_url}/#{self._id}",JSON.generate(self.data.reject {|key,value| key=="_id"}))
     result_hash = JSON.parse(response.content)
     
@@ -77,11 +80,21 @@ class MagnetCouch
     if @data["id"]
     else
       clnt = HTTPClient.new
-      @data["root_doc_name"] = self.class.to_s
-      @data["date"] = Time.now.strftime("%Y/%m/%d %H:%M:%S")
-      rs = clnt.put("#{self.couchdb_url}/#{self.uuid}",JSON.generate(@data))
-      self.data.merge!(JSON.parse(rs.content))
-      return self.data["ok"]
+      self.data["root_doc_name"] = self.class.to_s
+      self.data["created_at"] = Time.now.strftime("%Y/%m/%d %H:%M:%S")
+      self.data["updated_at"] = Time.now.strftime("%Y/%m/%d %H:%M:%S")
+      
+      response = clnt.post("#{self.couchdb_url}",JSON.generate(self.data), {'Content-Type' => 'application/json'})
+      result_hash = JSON.parse(response.content)
+      
+      if result_hash["error"]
+        self.errors << result_hash["reason"]
+        return false
+      else
+        self._id = self.data["_id"] = result_hash["id"]
+        self._rev = self.data["_rev"] = result_hash["rev"]
+        return true
+      end    
     end    
   end
   
