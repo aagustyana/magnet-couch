@@ -39,6 +39,18 @@ class MagnetCouch
     self.new(result_hash)
   end  
   
+  def self.find_all
+    function = <<-eos
+      function(doc) {
+        if (doc.created_at && doc.name && doc.doc_type == '#{self.new.class}' ) {
+          emit(doc._id,doc);
+        }
+      }
+    eos
+    
+    return self.create_view("find_all",function)
+  end
+  
   def update_attributes(params)
     
     self.data.each do |key,value|
@@ -80,7 +92,7 @@ class MagnetCouch
     if @data["id"]
     else
       clnt = HTTPClient.new
-      self.data["root_doc_name"] = self.class.to_s
+      self.data["doc_type"] = self.class.to_s
       self.data["created_at"] = Time.now.strftime("%Y/%m/%d %H:%M:%S")
       self.data["updated_at"] = Time.now.strftime("%Y/%m/%d %H:%M:%S")
       
@@ -140,6 +152,7 @@ class MagnetCouch
     end    
       
   end
+  
     
   def uuid
     clnt = HTTPClient.new
