@@ -89,7 +89,8 @@ class MagnetCouch
   end  
   
   def save
-    if @data["id"]
+    if self._id
+      self.update_attributes(self.data)
     else
       clnt = HTTPClient.new
       self.data["doc_type"] = self.class.to_s
@@ -109,6 +110,15 @@ class MagnetCouch
       end    
     end    
   end
+  
+  def add(key, value)
+    self.data[key] = [] if self.data[key].nil?
+    self.data[key] << value.merge(:_id => uuid)  
+  end  
+  
+  def remove(key,id)
+    self.data[key] == self.data[key].delete_if {|sub| sub["_id"].to_s == id.to_s}
+  end  
   
   def self.parse(json)
     mc_datas = []
@@ -158,5 +168,6 @@ class MagnetCouch
     clnt = HTTPClient.new
     rs = clnt.get("#{self.couchdb_server}_uuids")
     return JSON.parse(rs.content)["uuids"]
-  end  
+  end 
+  
 end  
