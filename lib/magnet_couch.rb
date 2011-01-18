@@ -116,8 +116,43 @@ class MagnetCouch
     self.data[key] << value.merge(:_id => uuid)  
   end  
   
+  ### still inefficient, need to be replaced by views
+  def replace(key,value,sub_id)
+    rs = false
+    if self.data[key]
+      self.data[key].each_with_index do |arr,idx|
+        if arr["_id"][0].to_s == sub_id.to_s
+          self.data[key][idx] = value.merge(:_id => sub_id)
+          rs = true
+          break
+        end  
+      end  
+      
+    else
+      @errors << "can't update due to missing data #{sub_id}"   
+    end
+        
+    return rs
+  end  
+  
   def remove(key,id)
     self.data[key] == self.data[key].delete_if {|sub| sub["_id"].to_s == id.to_s}
+  end  
+  
+  ### still inefficient, need to be replaced by views
+  def emit_sub_doc(key,id)
+    rs = nil
+    
+    if self.data[key]
+      self.data[key].each do |arr|
+        if arr["_id"].to_s == id.to_s
+          rs = MagnetCouch.new(arr)
+          break
+        end  
+      end  
+    end
+    return rs
+      
   end  
   
   def self.parse(json)
