@@ -39,18 +39,6 @@ class MagnetCouch
     self.new(result_hash)
   end  
   
-  def self.find_all
-    function = <<-eos
-      function(doc) {
-        if (doc.created_at && doc.name && doc.doc_type == '#{self.new.class}' ) {
-          emit(doc._id,doc);
-        }
-      }
-    eos
-    
-    return self.create_view("find_all",function)
-  end
-  
   def update_attributes(params)
     
     self.data.each do |key,value|
@@ -166,36 +154,57 @@ class MagnetCouch
     end
     return mc_datas          
   end  
-  
-  def self.create_view(view_name, function)
-    views_url = "#{self.new.couchdb_url}/_design/#{self.new.couchdb_db_name}_views"
-    
-    clnt = HTTPClient.new
-    response = clnt.get("#{views_url}/_view/#{view_name}")
-    
-    if JSON.parse(response.content)["error"] == "not_found"
-      json_hash = {
-        "language" => "javascript",
-        "views" => {
-          "#{view_name}" => {
-            "map" => "#{function.split.join(' ')}"
-          }
+
+  def self.find_all
+    function = <<-eos
+      function(doc) {
+        if (doc.created_at && doc.name && doc.doc_type == '#{self.new.class}' ) {
+          emit(doc._id,doc);
         }
       }
-
-      response = clnt.put(views_url,JSON.generate(json_hash))
-      result_hash = JSON.parse(response.content)
+    eos
     
-      if result_hash["ok"] == true
-        response = clnt.get("#{views_url}/_view/#{view_name}")
-        return self.parse(response.content)
-      else
-        return []
-      end   
-    else
-      return self.parse(response.content)
-    end    
-      
+    return self.create_view_and_get_result("find_all",function)
+    
+  end  
+  
+  def self.create_view_and_get_result(view_name, function)
+    clnt = HTTPClient.new
+    response = clnt.get self.design_path(view_name)
+    
+    if JSON.parse(response.content)["error"] == "not_found"
+      result_hash = self.create_view(view_name, function)
+      response = clnt.get self.design_path(view_name)
+    end
+    
+    response = clnt.get self.view_path(view_name)  
+    return self.parse(response.content)
+  end  
+  
+  def self.design_path(view_name)    
+    "#{self.new.couchdb_url}/_design/#{self.new.class.to_s}_#{view_name}_view"
+  end  
+  
+  def self.view_path(view_name)
+    "#{self.design_path view_name}/_view/#{view_name}"
+  end  
+  
+  def self.create_view(view_name, function)
+    
+    json_hash = {
+      "language" => "javascript",
+      "views" => {
+        "#{view_name}" => {
+          "map" => "#{function.split.join(' ')}"
+        }
+      }
+    }
+
+    clnt = HTTPClient.new
+    response = clnt.put(self.design_path(view_name),JSON.generate(json_hash))    
+    
+    return JSON.parse(response.content)
+         
   end
   
     
