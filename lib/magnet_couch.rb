@@ -173,6 +173,7 @@ class MagnetCouch
     response = clnt.get self.design_path(view_name)
     
     if JSON.parse(response.content)["error"] == "not_found"
+      
       result_hash = self.create_view(view_name, function)
       response = clnt.get self.design_path(view_name)
     end
@@ -188,6 +189,20 @@ class MagnetCouch
   def self.view_path(view_name)
     "#{self.design_path view_name}/_view/#{view_name}"
   end  
+  
+  ## required couchdb-lucene
+  def self.create_lucene_view(view_name,json_hash) 
+    
+    clnt = HTTPClient.new
+    response = clnt.put(self.design_path(view_name),JSON.generate(json_hash))    
+    
+    return JSON.parse(response.content)
+  end
+  
+  def self.lucene_view_path(view_name)
+    #http://localhost:5984/mwm_development/_fti/_design/Project_search_view/multiple_keys?q"
+    return "#{self.new.couchdb_url}/_fti/_design/#{self.new.class.to_s}_#{view_name}_view"
+  end
   
   def self.create_view(view_name, function)
     
