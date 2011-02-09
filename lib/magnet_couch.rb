@@ -158,7 +158,7 @@ class MagnetCouch
   def self.find_all
     function = <<-eos
       function(doc) {
-        if (doc.created_at && doc.name && doc.doc_type == '#{self.new.class}' ) {
+        if (doc.created_at && doc.doc_type == '#{self.new.class}' ) {
           emit(doc._id,doc);
         }
       }
@@ -200,7 +200,7 @@ class MagnetCouch
   end
   
   def self.lucene_view_path(view_name)
-    #http://localhost:5984/mwm_development/_fti/_design/Project_search_view/multiple_keys?q"
+    #http://localhost:5984/db_name/_fti/_design/View_name/multiple_keys?q"
     return "#{self.new.couchdb_url}/_fti/_design/#{self.new.class.to_s}_#{view_name}_view"
   end
   
