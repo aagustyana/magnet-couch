@@ -4,10 +4,10 @@ require 'ruby-debug'
 
 class String
   def blank?
-    if !self.nil? && !self.empty?
-      return false
-    else
+    if self.nil? or self.empty?
       return true
+    else
+      return false
     end    
   end
 end    
@@ -54,6 +54,8 @@ class MagnetCouch
     self.data.each do |key,value|
       self.data[key] = params[key] if params.keys.include?(key)
     end  
+    
+    before_save
     
     clnt = HTTPClient.new
     
@@ -185,6 +187,8 @@ class MagnetCouch
   end  
   
   ### options[:http_params], this is a query string
+  ### function contains map & reduce if it's hash
+  ### if function contains string it's map only
   
   def self.create_view_and_get_result(view_name, function, options= {})
     clnt = HTTPClient.new
@@ -206,7 +210,7 @@ class MagnetCouch
   
   def self.view_path(view_name, options = {})
     @qry_string = "?#{options[:http_params]}" unless options[:http_params].blank?
-    "#{self.design_path view_name}/_view/#{view_name}#{@qry_str}"
+    return "#{self.design_path view_name}/_view/#{view_name}#{@qry_string}"
   end  
   
   ## required couchdb-lucene
@@ -224,12 +228,20 @@ class MagnetCouch
   end
   
   def self.create_view(view_name, function)
+    if function.class == String
+      map = function
+      reduce = nil
+    elsif function.class == Hash
+      map = function[:map]
+      reduce = function[:reduce]  
+    end  
     
     json_hash = {
       "language" => "javascript",
       "views" => {
         "#{view_name}" => {
-          "map" => "#{function.split.join(' ')}"
+          "map" => "#{map.split.join(' ')}",
+          "reduce" => "#{reduce.split.join(' ')}",
         }
       }
     }
