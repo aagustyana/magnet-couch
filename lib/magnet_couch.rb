@@ -2,6 +2,16 @@
 require 'rubygems'
 require 'ruby-debug'
 
+class String
+  def blank?
+    if !self.nil? && !self.empty?
+      return false
+    else
+      return true
+    end    
+  end
+end    
+
 class MagnetCouch
   ## data contains key-value data that will store in couchdb
   ## couchdb_server : couchdb server url, default = http://localhost:5984/
@@ -76,7 +86,13 @@ class MagnetCouch
     end      
   end  
   
+  ### it's supposed to be callback
+  def before_save
+  end  
+  
   def save
+    before_save
+    
     if self._id
       self.update_attributes(self.data)
     else
@@ -168,7 +184,9 @@ class MagnetCouch
     
   end  
   
-  def self.create_view_and_get_result(view_name, function)
+  ### options[:http_params], this is a query string
+  
+  def self.create_view_and_get_result(view_name, function, options= {})
     clnt = HTTPClient.new
     response = clnt.get self.design_path(view_name)
     
@@ -178,16 +196,17 @@ class MagnetCouch
       response = clnt.get self.design_path(view_name)
     end
     
-    response = clnt.get self.view_path(view_name)  
+    response = clnt.get self.view_path(view_name, options)  
     return self.parse(response.content)
   end  
   
-  def self.design_path(view_name)    
+  def self.design_path(view_name)
     "#{self.new.couchdb_url}/_design/#{self.new.class.to_s}_#{view_name}_view"
   end  
   
-  def self.view_path(view_name)
-    "#{self.design_path view_name}/_view/#{view_name}"
+  def self.view_path(view_name, options = {})
+    @qry_string = "?#{options[:http_params]}" unless options[:http_params].blank?
+    "#{self.design_path view_name}/_view/#{view_name}#{@qry_str}"
   end  
   
   ## required couchdb-lucene
@@ -221,6 +240,29 @@ class MagnetCouch
     return JSON.parse(response.content)
          
   end
+  
+  def self.create_view_and_get_keys(view_name, function, options= {})
+    clnt = HTTPClient.new
+    response = clnt.get self.design_path(view_name)
+    
+    if JSON.parse(response.content)["error"] == "not_found"
+      
+      result_hash = self.create_view(view_name, function)
+      response = clnt.get self.design_path(view_name)
+    end
+    
+    response = clnt.get self.view_path(view_name, options)  
+    rows = JSON.parse(response.content)["rows"] 
+    
+    rs = []
+    if rows
+      rows.each do |row|
+        rs << row["key"] if row["key"]
+      end 
+    end
+    
+    return rs
+  end  
   
     
   def uuid
