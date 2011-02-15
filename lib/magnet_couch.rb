@@ -228,21 +228,18 @@ class MagnetCouch
   end
   
   def self.create_view(view_name, function)
+    map_reduce = {}
     if function.class == String
-      map = function.split.join(' ')
-      reduce = nil
+      map_reduce["map"] = function.split.join(' ')
     elsif function.class == Hash
-      map = function[:map].split.join(' ')
-      reduce = function[:reduce].split.join(' ')  
+      map_reduce["map"] = function[:map].split.join(' ')
+      map_reduce["function"] = function[:reduce].split.join(' ')
     end  
     
     json_hash = {
       "language" => "javascript",
       "views" => {
-        "#{view_name}" => {
-          "map" => "#{map}",
-          "reduce" => "#{reduce}",
-        }
+        "#{view_name}" => map_reduce
       }
     }
 
