@@ -229,19 +229,19 @@ class MagnetCouch
   
   def self.create_view(view_name, function)
     if function.class == String
-      map = function
+      map = function.split.join(' ')
       reduce = nil
     elsif function.class == Hash
-      map = function[:map]
-      reduce = function[:reduce]  
+      map = function[:map].split.join(' ')
+      reduce = function[:reduce].split.join(' ')  
     end  
     
     json_hash = {
       "language" => "javascript",
       "views" => {
         "#{view_name}" => {
-          "map" => "#{map.split.join(' ')}",
-          "reduce" => "#{reduce.split.join(' ')}",
+          "map" => "#{map}",
+          "reduce" => "#{reduce}",
         }
       }
     }
