@@ -218,9 +218,8 @@ class MagnetCouch
     
     clnt = HTTPClient.new
     response = clnt.put(self.design_path(view_name),JSON.generate(json_hash))    
-    
     return JSON.parse(response.content)
-  end
+  end  
   
   def self.lucene_view_path(view_name)
     #http://localhost:5984/db_name/_fti/_design/View_name/multiple_keys?q"
@@ -233,7 +232,7 @@ class MagnetCouch
       map_reduce["map"] = function.split.join(' ')
     elsif function.class == Hash
       map_reduce["map"] = function[:map].split.join(' ')
-      map_reduce["function"] = function[:reduce].split.join(' ')
+      map_reduce["reduce"] = function[:reduce].split.join(' ')
     end  
     
     json_hash = {
@@ -269,7 +268,6 @@ class MagnetCouch
         rs << row["key"] if row["key"]
       end 
     end
-    
     return rs
   end  
   
