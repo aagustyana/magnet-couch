@@ -51,9 +51,13 @@ class MagnetCouch
   
   def update_attributes(params)
     
-    self.data.each do |key,value|
-      self.data[key] = params[key] if params.keys.include?(key)
-    end  
+    #self.data.each do |key,value|
+    #  self.data[key] = params[key] if params.keys.include?(key)
+    #end
+    
+    params.each do |key,value|
+      self.data[key] = params[key]
+    end    
     
     before_save
     
